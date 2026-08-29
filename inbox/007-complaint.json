@@ -1,0 +1,7 @@
+{
+  "id": "007-complaint",
+  "sender": "angry.patron@example.com",
+  "subject": "Fined unfairly",
+  "body": "I returned my book on time and I have still been fined $200. This is completely unacceptable and I want it removed immediately. I have been a member for six years.",
+  "received": "2026-08-24T09:00:00Z"
+}

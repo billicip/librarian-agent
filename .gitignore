@@ -1,0 +1,16 @@
+# Secrets. Never commit these — see FINDINGS.md and the project's secrets rule.
+.env
+
+# Python caches
+__pycache__/
+*.pyc
+
+# Run outputs. The folders are kept (via .gitkeep) so a fresh clone runs;
+# what the program writes into them is not source and is not tracked.
+outbox/*
+!outbox/.gitkeep
+reports/*
+!reports/.gitkeep
+
+# macOS
+.DS_Store

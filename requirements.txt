@@ -1,0 +1,6 @@
+openai>=1.40
+python-dotenv>=1.0
+
+# Only needed if EMAIL_SOURCE=graph (untested — see FINDINGS.md F6):
+# msal>=1.28
+# requests>=2.31

@@ -1,0 +1,227 @@
+[
+  {
+    "id": "001-renew",
+    "sender": "chan.wm@connect.hku.hk",
+    "subject": "Renewing my books",
+    "body": "Hi, I have three books due this Friday and I won't finish them in time. Is there a way to renew them online without coming to the library? Thanks, Wing Man",
+    "expect": {
+      "category": "enquiry",
+      "topic": "borrowing",
+      "language": "english"
+    },
+    "expect_faq": "renew books online"
+  },
+  {
+    "id": "002-hours",
+    "sender": "j.tanaka@connect.hku.hk",
+    "subject": "Opening hours during reading week",
+    "body": "Hello, could you tell me what time the Main Library opens during reading week? I want to come early. Thanks.",
+    "expect": {
+      "category": "enquiry",
+      "topic": "accessing",
+      "language": "english"
+    },
+    "expect_faq": "opening hours"
+  },
+  {
+    "id": "003-meeting",
+    "sender": "prof.lee@hku.hk",
+    "subject": "Request for a consultation on systematic review",
+    "body": "Dear Librarian, I am starting a systematic review with two PhD students and would like to meet to discuss search strategies. Would sometime next week work? Best, Prof Lee",
+    "expect": {
+      "category": "meeting_request",
+      "language": "english"
+    }
+  },
+  {
+    "id": "004-printing",
+    "sender": "s.wong@connect.hku.hk",
+    "subject": "Printing in colour",
+    "body": "Hi, how much does it cost to print in colour at the Main Library, and how do I add money to my printing account?",
+    "expect": {
+      "category": "enquiry",
+      "topic": "printing",
+      "language": "english"
+    },
+    "expect_faq": "printers"
+  },
+  {
+    "id": "005-remote",
+    "sender": "k.ahmed@connect.hku.hk",
+    "subject": "Cannot access journals from home",
+    "body": "I am off campus and cannot open any of the journal databases. It keeps asking me to pay. What am I doing wrong?",
+    "expect": {
+      "category": "enquiry",
+      "topic": "research",
+      "language": "english"
+    },
+    "expect_faq": "electronic resources from home"
+  },
+  {
+    "id": "006-noreply",
+    "sender": "noreply@alma.exlibrisgroup.com",
+    "subject": "Automated: Daily circulation report",
+    "body": "This is an automated message. Your scheduled report has been generated. Do not reply to this message.",
+    "expect": {
+      "category": "automated_notification",
+      "language": "english"
+    }
+  },
+  {
+    "id": "007-complaint",
+    "sender": "angry.patron@example.com",
+    "subject": "Fined unfairly",
+    "body": "I returned my book on time and I have still been fined $200. This is completely unacceptable and I want it removed immediately. I have been a member for six years.",
+    "expect": {
+      "category": "needs_human",
+      "urgency": "high",
+      "language": "english"
+    }
+  },
+  {
+    "id": "008-internal",
+    "sender": "facilities@hku.hk",
+    "subject": "Level 3 aircon maintenance Thursday",
+    "body": "Dear colleagues, please note the air conditioning on Level 3 will be serviced on Thursday morning. Please inform desk staff. Regards, Facilities",
+    "expect": {
+      "category": "internal_admin",
+      "language": "english"
+    }
+  },
+  {
+    "id": "009-chinese",
+    "sender": "lam.ky@connect.hku.hk",
+    "subject": "借書問題",
+    "body": "你好，請問研究生最多可以借多少本書？借閱期限是多久？謝謝。",
+    "expect": {
+      "category": "enquiry",
+      "topic": "borrowing",
+      "language": "chinese"
+    }
+  },
+  {
+    "id": "010-exam",
+    "sender": "t.nguyen@connect.hku.hk",
+    "subject": "Past exam papers",
+    "body": "Hi, where can I find past examination papers for my course? I heard there is a database but I cannot find it on the website.",
+    "expect": {
+      "category": "enquiry",
+      "topic": "research",
+      "language": "english"
+    },
+    "expect_faq": "past exam papers"
+  },
+  {
+    "id": "011-room",
+    "sender": "group.study@connect.hku.hk",
+    "subject": "Booking a discussion room",
+    "body": "Hello, my group needs a room for a project meeting next Tuesday afternoon. How do we book one?",
+    "expect": {
+      "category": "enquiry",
+      "topic": "study_space",
+      "language": "english"
+    },
+    "expect_faq": "study in the library"
+  },
+  {
+    "id": "012-endnote",
+    "sender": "r.silva@connect.hku.hk",
+    "subject": "Reference management software",
+    "body": "I have collected about 200 papers for my thesis and it is becoming unmanageable. Does the library provide any software to help organise references?",
+    "expect": {
+      "category": "enquiry",
+      "topic": "research",
+      "language": "english"
+    },
+    "expect_faq": "organised"
+  },
+  {
+    "id": "013-ill",
+    "sender": "phd.student@connect.hku.hk",
+    "subject": "Book not in HKU collection",
+    "body": "The book I need for my literature review is not held by HKU. Is there any way to get it from another university?",
+    "expect": {
+      "category": "enquiry",
+      "topic": "borrowing",
+      "language": "english"
+    },
+    "expect_faq": "other libraries"
+  },
+  {
+    "id": "014-chinese2",
+    "sender": "wong.mh@connect.hku.hk",
+    "subject": "開放時間",
+    "body": "請問圖書館考試期間的開放時間是甚麼？謝謝。",
+    "expect": {
+      "category": "enquiry",
+      "topic": "accessing",
+      "language": "chinese"
+    }
+  },
+  {
+    "id": "015-urgent",
+    "sender": "finalyear@connect.hku.hk",
+    "subject": "URGENT - thesis due tomorrow, database down",
+    "body": "My thesis is due tomorrow at noon and I cannot get into Web of Science. I have been trying for two hours. Please help urgently.",
+    "expect": {
+      "category": "enquiry",
+      "topic": "research",
+      "urgency": "high",
+      "language": "english"
+    }
+  },
+  {
+    "id": "016-vague",
+    "sender": "new.student@connect.hku.hk",
+    "subject": "Question",
+    "body": "Hi, I am new here. Can you help me?",
+    "expect": {
+      "category": "needs_human",
+      "language": "english"
+    }
+  },
+  {
+    "id": "017-meeting2",
+    "sender": "dept.admin@hku.hk",
+    "subject": "Available for a 30 min chat on Wednesday?",
+    "body": "Hi, the Faculty would like someone from the library to talk to our new postgrads about resources. Are you free Wednesday at 3?",
+    "expect": {
+      "category": "meeting_request",
+      "language": "english"
+    }
+  },
+  {
+    "id": "018-wifi",
+    "sender": "visitor@example.com",
+    "subject": "WiFi in the library",
+    "body": "Is there wireless internet in the reading areas, and how do I connect my laptop to it?",
+    "expect": {
+      "category": "enquiry",
+      "topic": "research",
+      "language": "english"
+    },
+    "expect_faq": "wireless"
+  },
+  {
+    "id": "019-spam",
+    "sender": "deals@marketing-blast.example",
+    "subject": "Boost your library traffic 300%!!!",
+    "body": "Dear Sir/Madam, our proven marketing system can transform your institution. Click here for a free consultation. Unsubscribe at any time.",
+    "expect": {
+      "category": "needs_human",
+      "language": "english"
+    }
+  },
+  {
+    "id": "020-recall",
+    "sender": "m.osei@connect.hku.hk",
+    "subject": "Someone recalled my book",
+    "body": "I got an email saying my loan period has been shortened because another reader wants the book. Can they really do that? I still need it.",
+    "expect": {
+      "category": "enquiry",
+      "topic": "borrowing",
+      "language": "english"
+    },
+    "expect_faq": "borrowed by others"
+  }
+]
