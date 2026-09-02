@@ -1,13 +1,14 @@
 # Librarian Email Agent
 
-An email assistant for HKU Libraries staff. It reads incoming mail, sorts it,
-answers what it can from the library's own FAQ, and hands everything else to a
-human with a note explaining why.
+A small email assistant for the HKU Libraries mailbox. It reads incoming mail,
+works out what each message is, answers the routine questions from the library's
+own FAQ, and leaves everything else for a person.
 
-Runs entirely on your own machine. No cloud account, no API key, no per-message
-cost, no data leaving the laptop.
+It runs on your laptop. No cloud account, no API key, nothing to pay per
+message, and no email leaves the machine.
 
----
+I built this as a research assistant at HKU LITE Lab. What I measured, and what
+broke along the way, is in `FINDINGS.md`.
 
 ## What it does
 
@@ -20,38 +21,36 @@ cost, no data leaving the laptop.
                                                                     └─→ held
 ```
 
-It is **held** rather than sent whenever any of these is true:
+A reply is held instead of sent if any of these are true:
 
-- the FAQ match is weak
-- the reply was written by the model rather than quoted from the FAQ
-- the mail is in Chinese — drafting quality there is unverified
-- auto-send is switched off
+- the FAQ match is too weak
+- the model wrote the reply instead of quoting the FAQ
+- the email is in Chinese (I haven't checked how good the Chinese replies are)
+- auto-send is turned off
 
-It also keeps a **knowledge-base gap report**: every enquiry no FAQ entry could
-answer. Over a few weeks that becomes a prioritised list of FAQ entries worth
-writing — the agent improves the system instead of only reacting to it.
+Every run also writes two reports.
 
-And a **review queue**: everything still waiting on a person, urgent first. This
-is the only use made of the urgency label, deliberately. Urgency is the model's
-guess, measured on two cases and so effectively unmeasured, which is exactly why
-it orders a list rather than gating a send. Wrong urgency costs a librarian
-reading two items out of order; wrong anything in the send path costs a student
-acting on false information.
+The **gap report** lists enquiries that no FAQ entry answered. After a few weeks
+that becomes a to-do list for whoever maintains the FAQ.
 
-## It is not an agent loop, deliberately
+The **review queue** lists everything still waiting on a person, urgent ones
+first. That is the only thing the urgency label is used for. The eval only
+covered urgency on two emails, so I don't trust it enough to let it decide
+anything. Sorting a reading list is about as much as it can safely do.
 
-Every step has a known position in the sequence, so nothing needs deciding at
-runtime. Python controls the order; the model is asked to do three text tasks
-(classify, summarise, draft) and nothing else.
+## Why there is no agent loop
 
-That choice came from a measurement, not a preference. `phi-4-mini` is listed
-as tool-capable in Foundry Local's catalog but does not use tools in practice
-(FINDINGS.md F5). Rather than fight it, we removed the need for it.
+Every email goes through the same steps in the same order, so there is nothing
+for the model to decide while it runs. Python runs the sequence. The model only
+does three text jobs: sorting, summarising and drafting.
 
-The wider point, worth carrying into the cookbook: **most tasks people describe
-as "agentic" are this shape.** True tool-calling autonomy is for when the
-sequence genuinely cannot be known in advance. Where it can, a fixed pipeline is
-more reliable, cheaper, and something a librarian can read and predict.
+I went this way after testing `phi-4-mini` with tools. Foundry Local lists it as
+tool-capable but it didn't use them in practice (F5). Rather than fight that, I
+removed the need for tools.
+
+I think this applies to a lot of things people call agents. If you already know
+the order of the steps, a fixed sequence is easier to trust, cheaper to run, and
+a librarian can read it and know what will happen.
 
 ## Setup
 
@@ -60,7 +59,8 @@ pip3 install -r requirements.txt
 cp .env.example .env
 ```
 
-Install a local model — free, Microsoft, runs on your machine:
+Then install a local model. It's free, it's Microsoft's, and it runs on your
+machine:
 
 ```bash
 brew tap microsoft/foundrylocal
@@ -72,12 +72,10 @@ foundry model load phi-4-mini
 foundry server status
 ```
 
-The last command prints the port.
+The last command prints a port. Put it in `.env` as `MODEL_BASE_URL` with `/v1`
+on the end. The port is different on every install, so don't copy mine.
 
-Put that port in `.env` as `MODEL_BASE_URL` (with `/v1` on the end — the port
-is assigned per install, it is not the same on every machine).
-
-## Run
+## Running it
 
 ```bash
 python3 run.py --selftest
@@ -88,85 +86,81 @@ python3 run.py --eval
 
 | Command | What it does |
 |---|---|
-| `--selftest` | Verifies the pipeline. No model needed. |
-| `--check` | Verifies the model is reachable and sane. |
+| `--selftest` | Runs the pipeline against a fake model. No real model needed. |
+| `--check` | Checks the model is reachable and answering sensibly. |
 | *(none)* | Processes `inbox/`. |
-| `--eval` | Scores the classifier against 20 labelled cases. |
+| `--eval` | Scores the classifier against 20 emails I labelled by hand. |
 
-Run them in that order when something breaks — each isolates a different layer.
-If `--selftest` passes and `--check` fails, the code is fine and the model is
-the problem.
+Run them in that order when something breaks. Each one tests a different layer,
+so the first failure tells you where to look. If the self-test passes and the
+check fails, the code is fine and the model is the problem.
 
 ## What's in here
 
 | File | |
 |---|---|
-| `CODE_GUIDE.md` | **Every file explained for a beginner** — start here. |
-| `FINDINGS.md` | What we measured and what broke. The research record. |
-| `run.py` | The commands above. Start here to see how the pieces are wired. |
-| `pipeline.py` | **The sequence.** Read this first — it is what the agent does. |
-| `knowledge.py` | Loads and searches the FAQ. Deliberately simple scoring. |
-| `llm.py` | Model calls. Note `pick_one` and why it exists. |
-| `sources.py` | Where mail comes from: files (works) or Graph (unverified). |
-| `config.py` | Everything swappable: provider, source, thresholds. |
+| `CODE_GUIDE.md` | Every file explained for someone new to programming. Start here. |
+| `FINDINGS.md` | What I measured and what broke. |
+| `pipeline.py` | The sequence. Read this first if you only read one file. |
+| `run.py` | The commands above. |
+| `knowledge.py` | Loads and searches the FAQ. The scoring is very simple on purpose. |
+| `llm.py` | Model calls, including `pick_one`, which is worth a look. |
+| `sources.py` | Where mail comes from: files (works) or Graph (never run). |
+| `config.py` | Anything swappable: provider, email source, thresholds. |
 | `evaluate.py` | Scores the classifier. This is the research part. |
-| `selftest.py` | Runs the pipeline against a fake model. |
-| `knowledge_base/` | Real HKU FAQ content, 23 entries. Plain markdown — **editable by librarians, no code**. |
-| `eval/cases.json` | 20 hand-labelled emails, including 2 in Chinese. |
+| `selftest.py` | Runs everything against a fake model. |
+| `knowledge_base/` | 23 real HKU FAQ entries as plain markdown. A librarian can edit these without touching code. |
+| `eval/cases.json` | 20 labelled emails, two of them in Chinese. |
 
 ## Auto-send
 
-On by default. Four conditions must all hold before anything is sent without a
-human, and it is worth reading them together, because each one closes a
-different failure:
+It's on by default. Four things have to be true before anything sends on its
+own:
 
-1. **The FAQ match scores at least `AUTO_SEND_THRESHOLD`** (0.55) — the FAQ
-   plausibly answers the question at all.
-2. **The reply is a verbatim template**, not model-written prose. This is the
-   F10 rule and the load-bearing one: a model that invented library opening
-   hours cannot invent anything when the reply quotes the FAQ word for word.
-3. **The email is in English** — Chinese drafting quality is unverified, so it
-   is held rather than guessed at.
-4. **`AUTO_SEND` is on.**
+1. the FAQ match scores at least 0.55
+2. the reply is copied from the FAQ, not written by the model
+3. the email is in English
+4. `AUTO_SEND` is on
 
-Safe as shipped for a further reason that is independent of all four: with
-`EMAIL_SOURCE=files` nothing leaves the machine. "Sending" writes a file marked
-SENT, so every decision stays observable.
+Number 2 is the one that matters. The model once invented library opening hours
+and the program sent them (F10). A reply that quotes the FAQ word for word can't
+invent anything.
 
-**Confidence is the search's, not the model's.** A small model will cheerfully
-claim certainty while inventing a loan period. A match score can be checked:
-*"sent because the FAQ entry 'Can I renew books online?' matched at 0.667"* is
-auditable in a way *"the model seemed sure"* never is.
+Nothing actually leaves the machine either. With `EMAIL_SOURCE=files`, "sending"
+just writes a file marked SENT, so you can read back every decision afterwards.
 
-One honest note on condition 3. Until 2026-08-28 the language test was a model
-call scoring 60% and biased toward answering `chinese`, so it was holding back
-roughly 40% of English mail — auto-send looked more conservative than it was
-designed to be, for a reason nobody chose. That is fixed (FINDINGS.md F12), and
-more mail is now genuinely eligible. Auto-send stays on by default anyway: the
-safety was never resting on that bug, it rests on conditions 1, 2 and 4, and on
-nothing actually leaving the machine.
+The threshold is the search's confidence, not the model's. A small model will
+sound completely certain while making up a loan period. A match score is
+something you can check later: "sent because 'Can I renew books online?' matched
+at 0.667" is a sentence someone can verify.
 
-Before pointing this at a real shared mailbox: turn auto-send off, and get
-explicit sign-off. A confidently wrong reply from the library's official address
-is an institutional problem, not a bug report.
+One note on point 3. Until 28 August the language check was a model call. It
+scored 60% and kept guessing "chinese" for plainly English mail, so it was
+quietly holding back about 40% of the inbox for no good reason. That's fixed
+(F12) and more mail is now eligible to send. I've left auto-send on anyway,
+because the safety comes from points 1, 2 and 4, and from nothing leaving the
+machine.
 
-## Honest limitations
+If you ever point this at a real shared mailbox, turn auto-send off first and get
+someone to sign it off. A wrong reply from the library's address is a bigger
+problem than a bug report.
 
-- **FAQ search matches words, not meaning.** "How long can I keep a book" will
-  not find an entry phrased as "loan period". Embeddings are the obvious next
-  step and the single clearest improvement available.
-- **Thresholds were tuned on ten cases.** Enough to avoid something obviously
-  broken; nowhere near calibrated. Re-tune on real enquiry data.
-- **The eval set is synthetic**, written from the public FAQ. Real anonymised
-  enquiries would make the accuracy number far more defensible.
-- **Chinese is untested** beyond two eval cases, which is why it is never
-  auto-sent.
-- **The Graph email source has never run.** It is written to spec but
-  `Mail.Read` consent was refused by an administrator in both tenants tried.
-  Do not report it as working.
+## What I know is wrong with it
 
-## Sources
+- **The search matches words, not meaning.** Ask "how long can I keep a book"
+  and it won't find the entry that says "loan period". Embeddings would fix
+  this, and it's the next thing I'd do.
+- **The thresholds were tuned on ten emails.** That's enough to catch something
+  badly broken. It isn't enough to call them calibrated.
+- **The test emails are ones I wrote myself** from the public FAQ. Real
+  anonymised enquiries would make the accuracy numbers mean a lot more.
+- **Chinese has only been tested on two emails**, which is why it never sends
+  automatically.
+- **The Outlook code has never run.** `Mail.Read` consent was refused by an
+  administrator in both tenants I tried, so please don't tell anyone it works.
 
-FAQ content copied verbatim from HKU Libraries, with source URLs in each
-`knowledge_base/*.md` file:
-<https://lib.hku.hk/FAQ/> · <https://libguides.lib.hku.hk>
+## Where the FAQ came from
+
+The answers in `knowledge_base/` are copied word for word from HKU Libraries,
+with the source URL at the top of each file:
+<https://lib.hku.hk/FAQ/> and <https://libguides.lib.hku.hk>
