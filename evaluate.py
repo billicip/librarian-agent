@@ -1,16 +1,4 @@
-"""Measure the classifier against hand-labelled cases.
-
-This is the part that makes the project research rather than a demo.
-
-"We built an agent" is not a finding. "phi-4-mini correctly classified 17 of
-20 library enquiries; every failure confused internal_admin with enquiry" is —
-it is a number, it is reproducible by anyone who clones this repo, and it can
-be compared directly against Copilot Studio once that becomes available.
-
-The eval set lives in eval/cases.json with the correct answers written by
-hand. Getting the labels right matters more than the code here: a wrong label
-silently punishes a correct model.
-"""
+"""Score the classifier against the hand-labelled emails in eval/cases.json."""
 
 from __future__ import annotations
 
@@ -56,9 +44,7 @@ def run() -> None:
             else:
                 failures.append((case["id"], field, expected, actual))
 
-            # Topic is scored twice: once over every labelled case, and once
-            # over only those where the model was actually asked. See the note
-            # printed with the results.
+            # Also score topic only where the model was actually asked.
             if field == "topic" and got.get("topic_asked"):
                 total["topic_asked"] += 1
                 correct["topic_asked"] += hit
@@ -66,9 +52,7 @@ def run() -> None:
                 confusion[expected][actual] += 1
             row.append(f"{field[:4]}={'ok' if hit else actual}")
 
-        # Where a case names the FAQ entry that SHOULD match, check retrieval
-        # too — classification and retrieval fail in different ways and a
-        # combined number would hide which one is weak.
+        # Check FAQ retrieval separately from classification.
         if "expect_faq" in case:
             kb_total += 1
             match = knowledge.best(f"{case['subject']} {case['body']}", entries)
@@ -94,21 +78,15 @@ def run() -> None:
 
     if total["topic_asked"] and total["topic_asked"] != total["topic"]:
         skipped = total["topic"] - total["topic_asked"]
-        print(f"\n  * topic is scored twice on purpose. The plain row counts every "
-              f"labelled\n    case; the starred row counts only the "
-              f"{total['topic_asked']} where the model was actually\n    asked. "
-              f"In the other {skipped}, it called the category something other than\n"
-              f"    'enquiry', so pipeline.classify() never put the topic question and\n"
-              f"    the answer defaulted to 'other'. Scoring those as topic errors\n"
-              f"    counts one category mistake twice.")
+        print(f"\n  * topic* only counts the {total['topic_asked']} cases where the "
+              f"model was asked.\n    In the other {skipped} the category was wrong, "
+              f"so topic was never asked.")
 
     if failures:
         print(f"\n  {len(failures)} failure(s):")
         for case_id, field, expected, actual in failures:
             print(f"    {case_id:<22} {field}: expected {expected!r}, got {actual!r}")
 
-    # Confusion pairs are the useful output. "It got 85%" tells you little;
-    # "it systematically reads internal_admin as enquiry" tells you what to fix.
     pairs = [(exp, act, n) for exp, row in confusion.items()
              for act, n in row.items() if exp != act]
     if pairs:
@@ -116,8 +94,7 @@ def run() -> None:
         for expected, actual, count in sorted(pairs, key=lambda t: -t[2]):
             print(f"    {expected} -> {actual}  ({count}x)")
 
-    print(f"\n  Record this in FINDINGS.md with the model name and date.")
-    print(f"  Model: {config.MODEL}  Provider: {config.PROVIDER}")
+    print(f"\n  Model: {config.MODEL}  Provider: {config.PROVIDER}")
 
 
 if __name__ == "__main__":

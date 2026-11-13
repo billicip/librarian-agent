@@ -1,8 +1,9 @@
-"""CLI.
+"""Entry point.
 
-    python3 run.py --check     is the model reachable and sane?
+    python3 run.py --selftest  run with a fake model
+    python3 run.py --check     check the model is running
     python3 run.py             process the inbox
-    python3 run.py --eval      score the classifier against labelled cases
+    python3 run.py --eval      score the classifier
 """
 
 from __future__ import annotations
@@ -25,11 +26,7 @@ import sources     # noqa: E402
 
 
 def check() -> None:
-    """Verify the model answers, and that it can pick from a fixed list.
-
-    Note what is NOT tested: tool calling. This pipeline does not use it, so
-    a model that fails at it (FINDINGS.md F5) is still perfectly usable here.
-    """
+    """Check the model responds and can pick from a list."""
     print(f"Checking: {config.describe()}\n")
 
     try:
@@ -64,7 +61,7 @@ def check() -> None:
 
 
 def _write_log(results: list[pipeline.Result], stamp: str) -> Path:
-    """One row per email: every label and every decision, for a spreadsheet."""
+    """One CSV row per email."""
     path = Path(config.REPORTS_DIR) / f"log_{stamp}.csv"
     with path.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.writer(handle)
@@ -84,31 +81,20 @@ def _write_log(results: list[pipeline.Result], stamp: str) -> Path:
 
 def _write_gaps(gaps: list[pipeline.Result], unreadable: list[pipeline.Result],
                 stamp: str) -> Path:
-    """Enquiries the FAQ could not answer — a to-do list for whoever maintains it.
-
-    Over time the entries that recur are the ones worth writing. The agent
-    improves the system rather than only reacting to it.
-
-    `unreadable` is listed separately and deliberately NOT called a gap. The
-    search could not read those at all, so it has no opinion about whether the
-    FAQ covers them (FINDINGS.md F14).
-    """
+    """List enquiries the FAQ couldn't answer. Unsearchable ones are listed separately."""
     path = Path(config.REPORTS_DIR) / f"kb_gaps_{stamp}.md"
     lines = ["# Knowledge base gaps", "",
-             "Enquiries no FAQ entry covered. Each is a candidate for a new "
-             "FAQ entry — the ones that recur are the ones worth writing.", ""]
+             "Enquiries that no FAQ entry covered.", ""]
     if gaps:
         lines += [f"- **{r.email.subject}** — {r.email.sender} (topic: {r.topic})"
                   for r in gaps]
     else:
-        lines.append("*None — every enquiry matched an existing FAQ entry.*")
+        lines.append("None.")
 
     if unreadable:
         lines += ["", "## Could not be searched", "",
-                  "The FAQ search matches words, and found none in these. That "
-                  "says nothing about whether the FAQ answers them — the same "
-                  "question in English may well match. **Do not treat these as "
-                  "missing FAQ entries.** See FINDINGS.md F14.", ""]
+                  "The search only reads English words, so these weren't "
+                  "searched. Not necessarily missing from the FAQ.", ""]
         lines += [f"- **{r.email.subject}** — {r.email.sender} "
                   f"(language: {r.language})" for r in unreadable]
 
@@ -117,24 +103,16 @@ def _write_gaps(gaps: list[pipeline.Result], unreadable: list[pipeline.Result],
 
 
 def _write_queue(pending: list[pipeline.Result], stamp: str) -> Path:
-    """Everything a human still has to deal with, urgent first.
+    """Everything waiting on a person, sorted by urgency.
 
-    This is the ONLY thing urgency is used for, and deliberately so. Urgency is
-    a model judgement measured on n=2 — effectively unmeasured — so it orders a
-    list a librarian reads top to bottom. If it is wrong, an item is read in the
-    wrong order. It gates no send decision, and it must not: an unmeasured
-    signal has no business deciding what leaves the building. Same rule as
-    everywhere else here — let the model be wrong only where it is cheap.
+    Urgency is only used for sorting here, it was only tested on 2 emails.
     """
     path = Path(config.REPORTS_DIR) / f"review_queue_{stamp}.md"
     lines = ["# Review queue", "",
-             "Everything waiting on a person, most urgent first. Nothing here "
-             "was sent; each item is a draft to approve or a message to "
-             "handle.", "",
-             "*Urgency is the model's guess and is barely measured — it sets "
-             "the reading order and nothing else.*", ""]
+             "Everything waiting on a person, most urgent first. "
+             "Urgency is the model's guess.", ""]
     if not pending:
-        lines.append("*Nothing waiting — every email was sent or ignored.*")
+        lines.append("Nothing waiting.")
 
     current = None
     for r in pending:
@@ -151,14 +129,14 @@ def _write_queue(pending: list[pipeline.Result], stamp: str) -> Path:
 
 
 def report(results: list[pipeline.Result]) -> None:
-    """Write the three run reports, then summarise on screen."""
+    """Write the CSV log, gap list and review queue, then print a summary."""
     Path(config.REPORTS_DIR).mkdir(exist_ok=True)
     stamp = datetime.now(timezone.utc).strftime("%Y%m%d")
 
     gaps = [r for r in results if r.kb_gap]
     unreadable = [r for r in results if r.retrieval_unavailable]
 
-    # Most urgent first, then by id so the order is stable between runs.
+    # Most urgent first, then by id.
     rank = {u: i for i, u in enumerate(reversed(config.URGENCIES))}
     pending = sorted([r for r in results if r.action in {"drafted", "flagged"}],
                      key=lambda r: (rank.get(r.urgency, 99), r.email.id))
@@ -214,12 +192,7 @@ def process_inbox() -> None:
 
 
 def _cannot_reach_model(exc: Exception) -> None:
-    """One friendly message for every command, not a 60-line traceback.
-
-    A stack trace is the right output for a bug in this code. 'the server
-    isn't running' is not a bug in this code, and burying it under 60 lines of
-    httpx internals helps nobody.
-    """
+    """Short error message instead of a long traceback."""
     print(f"\nCould not reach the model at {config.BASE_URL}\n")
     print("The Foundry Local server is not running, or is on a different port.")
     print("  1. foundry server status        <- the port is assigned per install")

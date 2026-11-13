@@ -1,9 +1,4 @@
-"""Configuration — model provider, thresholds, and paths.
-
-Everything that could be taken away from us lives here: the model provider,
-and the email source. Both were chosen after hitting access walls elsewhere
-(see FINDINGS.md), so both are swappable from .env without touching logic.
-"""
+"""Settings: model provider, email source, thresholds, paths."""
 
 from __future__ import annotations
 
@@ -11,8 +6,8 @@ import os
 from pathlib import Path
 
 # --- Model provider -------------------------------------------------------
-# Foundry Local: free, runs on this machine, a Microsoft product.
-# Port is assigned per-install — check `foundry server status`.
+# Foundry Local runs on your machine. The port changes per install,
+# check it with `foundry server status`.
 
 PROVIDERS: dict[str, dict] = {
     "foundry-local": {
@@ -49,9 +44,8 @@ def api_key() -> str:
 
 # --- Email source ---------------------------------------------------------
 # "files"  — read .json files from inbox/. Works today.
-# "graph"  — Microsoft Graph. WRITTEN BUT UNVERIFIED: Mail.Read consent was
-#            refused by an administrator in both tenants we tried. See
-#            FINDINGS.md F6. Do not claim this path works until someone runs it.
+# "graph"  — Microsoft Graph. Never tested, Mail.Read permission was
+#            refused by admins in both tenants I tried.
 
 EMAIL_SOURCE = os.getenv("EMAIL_SOURCE", "files").strip().lower()
 
@@ -60,18 +54,15 @@ GRAPH_TENANT_ID = os.getenv("GRAPH_TENANT_ID", "common").strip()
 
 # --- Behaviour ------------------------------------------------------------
 
-# How strong a FAQ match must be before a reply is sent without a human.
-# NOTE: confidence is the SEARCH's, not the model's. A small model will happily
-# claim certainty while inventing a loan period; a match score is auditable.
-# "Sent because FAQ 'renew books online' matched at 0.71" can be checked.
+# Minimum FAQ match score to send without a human. This is the search
+# score, not the model's confidence.
 AUTO_SEND_THRESHOLD = float(os.getenv("AUTO_SEND_THRESHOLD", "0.55"))
 
-# Below this, we treat the FAQ as having no answer at all and log a gap.
+# Below this, count it as a gap in the FAQ.
 MATCH_FLOOR = float(os.getenv("MATCH_FLOOR", "0.35"))
 
-# Master switch. ON by default per project decision — safe here because the
-# test mailbox has no real patrons. Turn OFF before pointing at a real
-# shared mailbox, and get sign-off first.
+# On by default because the file source never sends real email.
+# Turn it off before using a real mailbox.
 AUTO_SEND = os.getenv("AUTO_SEND", "true").strip().lower() in {"1", "true", "yes"}
 
 CATEGORIES = [
@@ -88,12 +79,6 @@ TOPICS = [
 ]
 
 URGENCIES = ["low", "normal", "high"]
-
-# There is deliberately no LANGUAGES list here. The three lists above are menus
-# handed to the model to choose from, so they belong in configuration. Language
-# is not chosen from a menu any more — pipeline.detect_language computes it from
-# the characters (FINDINGS.md F12), so the possible answers live with the code
-# that produces them.
 
 # --- Paths ----------------------------------------------------------------
 

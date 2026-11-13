@@ -1,19 +1,7 @@
-"""Where email comes from, and where replies go.
+"""Where emails come from and where replies go.
 
-Two implementations behind one interface, for a reason worth recording.
-
-We wanted to read a real Outlook mailbox via Microsoft Graph. Three access
-walls stopped us (FINDINGS.md F6–F8): Copilot Studio publish licence denied,
-Azure portal returned 401, and Graph `Mail.Read` consent was refused by an
-administrator in BOTH tenants tried. None of these were technical failures.
-
-So the file source is what runs. The Graph source is written to the same
-interface and is genuinely ready — but it has NEVER been executed against a
-real mailbox. It is marked accordingly, and nobody should claim it works until
-somebody runs it.
-
-This is the config.py lesson applied again: isolate the part that can be
-taken away from you, so losing it costs an adapter rather than a rewrite.
+FileSource reads JSON files and is what actually runs. GraphSource (Outlook)
+is written but never ran, because Mail.Read was refused by admins.
 """
 
 from __future__ import annotations
@@ -41,12 +29,7 @@ class Email:
 # --- Source 1: files (works today) ----------------------------------------
 
 class FileSource:
-    """Reads inbox/*.json. Writes drafts to outbox/ as .md files.
-
-    Nothing is ever actually sent — 'sending' writes a file marked SENT. That
-    keeps the full pipeline observable and makes auto-send safe to leave on
-    while developing.
-    """
+    """Reads inbox/*.json, writes replies to outbox/. "Sending" just writes a file."""
 
     name = "files"
 
@@ -92,24 +75,10 @@ class FileSource:
 # --- Source 2: Microsoft Graph (written, NEVER RUN) ------------------------
 
 class GraphSource:
-    """Real Outlook via Microsoft Graph.
+    """Outlook via Microsoft Graph. NOT TESTED.
 
-    *** UNVERIFIED. This code has never successfully run. ***
-
-    Blocked at the consent step: `Mail.Read` required administrator approval
-    in both tenants attempted (HKU and a Microsoft Student Ambassadors
-    tenant). The logic below follows the documented API shape, but treat it as
-    a specification of what production would require, not as working code.
-
-    To use it you need, in order:
-      1. An app registration in your tenant (portal.azure.com > Entra ID >
-         App registrations). Many universities block this for standard users.
-      2. Delegated permissions Mail.Read, Mail.Send, Mail.ReadWrite.
-      3. Administrator consent for those permissions.
-      4. pip install msal
-      5. GRAPH_CLIENT_ID and GRAPH_TENANT_ID in .env
-
-    Steps 1 and 3 are the walls. They are policy, not code.
+    Needs an app registration, Mail.Read/Send/ReadWrite with admin consent,
+    msal, and GRAPH_CLIENT_ID / GRAPH_TENANT_ID in .env.
     """
 
     name = "graph"
@@ -118,10 +87,8 @@ class GraphSource:
     def __init__(self):
         if not config.GRAPH_CLIENT_ID:
             raise SystemExit(
-                "EMAIL_SOURCE=graph needs GRAPH_CLIENT_ID in .env.\n\n"
-                "Note: this path has never been verified — Mail.Read consent\n"
-                "was refused by an administrator in both tenants we tried.\n"
-                "See FINDINGS.md F6. Use EMAIL_SOURCE=files instead."
+                "EMAIL_SOURCE=graph needs GRAPH_CLIENT_ID in .env.\n"
+                "This path is untested. Use EMAIL_SOURCE=files instead."
             )
         try:
             import msal  # noqa: F401
@@ -137,8 +104,7 @@ class GraphSource:
                 config.GRAPH_CLIENT_ID,
                 authority=f"https://login.microsoftonline.com/{config.GRAPH_TENANT_ID}",
             )
-            # Device code flow: prints a code, you sign in in a browser. Chosen
-            # over a redirect flow because it needs no web server or redirect URI.
+            # Device code flow, so no redirect URI is needed.
             flow = app.initiate_device_flow(scopes=self.SCOPES)
             if "user_code" not in flow:
                 raise SystemExit(f"Could not start device flow: {flow}")

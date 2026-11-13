@@ -1,10 +1,4 @@
-"""Prove the pipeline works without a model or a mailbox.
-
-Swaps in a scripted fake model, runs real emails through the real pipeline,
-and checks the routing decisions. Catches broken wiring in under a second with
-no download, no server and no network — so if a real run then fails, the
-problem is the model, not this code.
-"""
+"""Run the real pipeline with a fake model. No model, server or network needed."""
 
 from __future__ import annotations
 
@@ -20,7 +14,7 @@ import sources
 
 
 class FakeLLM:
-    """Answers plausibly from keywords. Deterministic, so the test is stable."""
+    """Fake model that answers based on keywords."""
 
     def __init__(self):
         self.calls = 0
@@ -46,20 +40,15 @@ class FakeLLM:
             return "research"
         if "urgent" in question.lower():
             return "high" if "urgent" in text else "normal"
-        # No language branch: the pipeline no longer asks the model what
-        # language an email is in. pipeline.detect_language decides it from
-        # the characters, so the Chinese check below now tests the real thing.
         return options[-1]
 
     def ask(self, prompt, **kwargs):
         self.calls += 1
-        # Reproduces the real failure from FINDINGS.md F10: asked about opening
-        # hours, phi-4-mini invented "9 am to 5 pm" and it was auto-sent.
-        # The verifier must catch this and fall back to the template.
+        # phi-4-mini once made up "9 am to 5 pm" opening hours. This must be caught.
         if "opening hour" in prompt.lower():
             return ("The Main Library operates from 9 am to 5 pm on Mondays "
                     "and Tuesdays.\n\nHKU Libraries")
-        # And the other real failure: looping on the prompt.
+        # The other real failure: repeating the prompt.
         if "renew" in prompt.lower():
             return "Reference information:\n---\nCan I renew books online?\n---\n" * 4
         return "Thank you for your message. Please see the FAQ.\n\nHKU Libraries"
@@ -104,8 +93,7 @@ def run_selftest() -> None:
         if meeting and meeting.action != "flagged":
             problems.append(f"meeting request was {meeting.action}, expected 'flagged'")
 
-        # REGRESSION (F10): a model reply that invents an opening time must be
-        # rejected and replaced by the verbatim template, never sent as-is.
+        # Made-up opening hours must be replaced by the template.
         hours = by_id.get("002-hours")
         if hours:
             if not hours.draft_method.startswith("template"):
@@ -115,7 +103,7 @@ def run_selftest() -> None:
             if "9 am to 5 pm" in hours.draft:
                 problems.append("the invented time survived into the reply")
 
-        # REGRESSION: a looping reply must also be rejected.
+        # A looping reply must also be replaced.
         renew = by_id.get("001-renew")
         if renew:
             if not renew.draft_method.startswith("template"):
@@ -124,19 +112,17 @@ def run_selftest() -> None:
                     f"{renew.draft_method!r}")
             if "Reference information" in renew.draft:
                 problems.append("the echoed prompt survived into the reply")
-            # Having fallen back to a verbatim template, it IS safe to send.
+            # The template version is safe to send.
             if config.AUTO_SEND and renew.action != "sent":
                 problems.append(f"verified template was {renew.action}, "
                                 f"expected 'sent'")
 
-        # Chinese must never auto-send — quality is unverified.
+        # Chinese is never auto-sent.
         chinese = by_id.get("009-chinese")
         if chinese and chinese.action == "sent":
             problems.append("Chinese enquiry was auto-sent; it must be held")
 
-        # REGRESSION (F14): the word-based FAQ search cannot read Chinese, so it
-        # finds nothing. That must be recorded as "could not search", never as
-        # "the FAQ has no answer" — the same question in English matches at 0.75.
+        # Search can't read Chinese, so it shouldn't count as an FAQ gap.
         if chinese:
             if chinese.kb_gap:
                 problems.append(
@@ -160,9 +146,7 @@ def run_selftest() -> None:
                 print(f"  - {p}")
             raise SystemExit(1)
 
-        print("\nSELF-TEST PASSED — classification routing, FAQ matching, "
-              "drafting\nand send/hold decisions all behave correctly.")
-        print("If a real run fails now, the problem is the model, not the pipeline.")
+        print("\nSELF-TEST PASSED")
 
     finally:
         llm.pick_one, llm.ask = real_pick, real_ask
